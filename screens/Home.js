@@ -5,42 +5,31 @@ import {
   faThermometerQuarter,
   faThermometerThreeQuarters,
   faThermometerHalf,
-  faThermometerFull,
-  faToggleOn,
-  faToggleOff
+  faThermometerFull
 } from '@fortawesome/free-solid-svg-icons'
 import styled from 'styled-components/native'
 import axios from 'axios'
 
-const Home = ({ navigation }) => {
-  const [timer, setTimer] = useState(0)
-  const [temperature, setTemperature] = useState(20)
+const Home = () => {
+  const [temperature, setTemperature] = useState(0)
   const [led, setLed] = useState(false)
   const [icon, setIcon] = useState(faThermometerEmpty)
   const [color, setColor] = useState('#55e03c')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getTemperature()
+  }, [])
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTimer(timer => timer + 1)
-    }, 20000)
+      getTemperature()
+    }, 3000)
 
     return () => {
       clearInterval(interval);
     }
   }, [])
-
-  useEffect(() => {
-    const getTemperature = async () => {
-      try {
-        const { data } = await axios.get('https://api.thingspeak.com/channels/879309/feed.json')
-        setTemperature(temperature => temperature + 1)
-      } catch (error) {
-        console.log(error.response)
-      }
-    }
-
-    getTemperature()
-  }, [timer])
 
   useEffect(() => {
     const getIcon = () => {
@@ -65,13 +54,27 @@ const Home = ({ navigation }) => {
     getIcon()
   }, [temperature])
 
+  const getTemperature = async () => {
+    try {
+      const { data } = await axios.get('https://api.thingspeak.com/channels/879309/feed.json')
+      const total = data.feeds.length - 1
+      const index = Math.floor(Math.random() * (total - 0 + 1)) + 0;
+
+      setTemperature(data.feeds[index].field1)
+    } catch (error) {
+      console.log(error.response)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const toggleLed = async (value) => {
     try {
       const { data } = await axios.post(
         'http://api.thingspeak.com/update',
         {
-          key: 'RZHWJLUOHIG58HOD',
-          field3: value ? 1 : 0
+          key: 'BG9QY2YYIDKFG7SX',
+          field1: value ? 1 : 0
         }
       )
     } catch (error) {
@@ -95,7 +98,13 @@ const Home = ({ navigation }) => {
             <FontAwesomeIcon icon={icon} size={60} color={color} />
             <BtnContent>
               <BtnTxt>temperatura</BtnTxt>
-              <BtnTemperature>{temperature} ºC</BtnTemperature>
+              {
+                loading
+                  ?
+                  <BtnSpinner size="large" color="#0587d5" />
+                  :
+                  <BtnTemperature>{temperature} ºC</BtnTemperature>
+              }
             </BtnContent>
           </Btn>
         </Column>
@@ -187,6 +196,10 @@ const BtnTemperature = styled.Text`
     font-size: 42px;
     color: #70caff;
     text-transform: uppercase;
+`
+
+const BtnSpinner = styled.ActivityIndicator`
+    align-self: flex-start;
 `
 
 const Toggle = styled.View`
